@@ -7,7 +7,7 @@
   const el = {
     setup: $('setup'), test: $('test'), results: $('results'), histCard: $('historyCard'),
     source: $('source'), srcInfo: $('srcInfo'), ghostWpm: $('ghostWpm'), ghostVal: $('ghostVal'),
-    optGhost: $('optGhost'), optStop: $('optStop'), optNorm: $('optNorm'),
+    optGhost: $('optGhost'), optStop: $('optStop'), optNorm: $('optNorm'), timerSec: $('timerSec'), timerVal: $('timerVal'),
     text: $('text'), textbox: $('textbox'), capture: $('capture'), hint: $('hint'),
     liveWpm: $('liveWpm'), liveAcc: $('liveAcc'), liveTime: $('liveTime'), liveProg: $('liveProg'),
     liveGhost: $('liveGhost'), liveDelta: $('liveDelta'), barYou: $('barYou'), barGhost: $('barGhost'),
@@ -17,11 +17,11 @@
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
-  const settings = Object.assign({ text: SAMPLE, wpm: 60, ghost: true, stop: false, norm: true }, load(KEY_SETTINGS, {}));
+  const settings = Object.assign({ text: SAMPLE, wpm: 60, ghost: true, stop: false, norm: true, timer: 0 }, load(KEY_SETTINGS, {}));
   let ghostWpm = settings.wpm;
 
   function persist() {
-    save(KEY_SETTINGS, { text: el.source.value, wpm: ghostWpm, ghost: el.optGhost.checked, stop: el.optStop.checked, norm: el.optNorm.checked });
+    save(KEY_SETTINGS, { text: el.source.value, wpm: ghostWpm, ghost: el.optGhost.checked, stop: el.optStop.checked, norm: el.optNorm.checked, timer: getTimer() });
   }
 
   /* ---------- text prep ---------- */
@@ -39,6 +39,14 @@
     const words = t ? t.split(' ').length : 0;
     el.srcInfo.textContent = `${words} words · ${t.length} characters`;
   }
+
+  function getTimer() { const v = Math.floor(+el.timerSec.value); return v > 0 ? Math.min(v, 3600) : 0; }
+  function setTimer(v) {
+    el.timerSec.value = v > 0 ? v : 0;
+    el.timerVal.textContent = v > 0 ? fmtDur(v) : 'off';
+    persist();
+  }
+  function fmtDur(s) { return s >= 60 ? `${Math.floor(s / 60)}m${s % 60 ? ' ' + (s % 60) + 's' : ''}` : s + 's'; }
 
   function setGhostWpm(v) {
     ghostWpm = Math.max(5, Math.min(250, Math.round(v)));
@@ -71,13 +79,13 @@
       bucketKeys: [], bucketCorrect: [], bucketGhost: [],
       charTime: new Array(text.length).fill(null),
       miss: {}, ghostPos: 0, lastTick: 0, ghostFinishT: null,
-      ghostOn: el.optGhost.checked, stop: el.optStop.checked,
+      limit: getTimer() * 1000, ghostOn: el.optGhost.checked, stop: el.optStop.checked,
       peak: 0, hist: [],
     };
     buildText();
     el.capture.value = '';
     el.liveGhost.textContent = ghostWpm;
-    el.liveWpm.textContent = '0'; el.liveAcc.textContent = '100%'; el.liveTime.textContent = '0.0s';
+    el.liveWpm.textContent = '0'; el.liveAcc.textContent = '100%'; el.liveTime.textContent = S.limit ? (S.limit / 1000).toFixed(1) + 's' : '0.0s'; el.liveTime.classList.remove('low');
     el.liveProg.textContent = '0%'; el.liveDelta.textContent = '—'; el.liveDelta.className = '';
     el.barYou.style.width = '0'; el.barGhost.style.width = '0';
     el.hint.textContent = 'Start typing to begin…';
@@ -126,18 +134,15 @@
     const gi = S.ghostOn && S.ghostPos < S.n ? Math.floor(S.ghostPos) : -1;
     if (gi !== prevGhost || force) {
       if (prevGhost >= 0) chars[prevGhost]?.classList.remove('gh');
-      if (gi >= 0) { chars[gi].classList.add('gh'); if (!S.started || gi - S.typed.length > 0) keepInView(chars[gi], true); }
+      if (gi >= 0) chars[gi].classList.add('gh');
       prevGhost = gi;
     }
   }
 
-  function keepInView(node, soft) {
+  // The text window always follows the user's cursor (never the ghost).
+  function keepInView(node) {
     const box = el.textbox, b = box.getBoundingClientRect(), r = node.getBoundingClientRect();
     const lh = r.height || 36;
-    if (soft) { // ghost only scrolls if it would be hidden below the box
-      if (r.bottom > b.bottom - 4) box.scrollTop += r.bottom - b.bottom + lh;
-      return;
-    }
     const rel = r.top - b.top;
     if (rel > lh * 2.2 || rel < 0) box.scrollTop += rel - lh * 1.5;
   }
@@ -213,6 +218,7 @@
     const sec = Math.floor((t - S.t0) / 1000);
     S.bucketGhost[sec] = ghostWpm;
     if (S.ghostPos >= S.n && S.ghostFinishT === null) S.ghostFinishT = t - S.t0;
+    if (S.limit && t - S.t0 >= S.limit) { updateLive(S.t0 + S.limit); finish(S.t0 + S.limit, true); return; }
     paintCursors();
     updateLive(t);
     raf = requestAnimationFrame(tick);
@@ -225,7 +231,8 @@
     S.peak = Math.max(S.peak, Math.min(wpm, 400));
     el.liveWpm.textContent = Math.round(wpm);
     el.liveAcc.textContent = (S.keys ? Math.round(S.correctKeys / S.keys * 100) : 100) + '%';
-    el.liveTime.textContent = (el_ / 1000).toFixed(1) + 's';
+    if (S.limit) { const left = Math.max(0, S.limit - el_) / 1000; el.liveTime.textContent = left.toFixed(1) + 's'; el.liveTime.classList.toggle('low', left <= 5); }
+    else el.liveTime.textContent = (el_ / 1000).toFixed(1) + 's';
     el.liveProg.textContent = Math.round(S.typed.length / S.n * 100) + '%';
     el.barYou.style.width = (S.typed.length / S.n * 100) + '%';
     if (S.ghostOn) {
@@ -237,7 +244,7 @@
   }
 
   /* ---------- finish & results ---------- */
-  function finish(t) {
+  function finish(t, timeUp) {
     S.done = true; cancelAnimationFrame(raf);
     const T = Math.max(1, t - S.t0);
     const mins = T / 60000;
@@ -282,7 +289,12 @@
 
     // ghost verdict
     let verdict = '', win = null, gres = '—';
-    if (S.ghostOn) {
+    if (S.ghostOn && timeUp) {
+      const gp = Math.min(S.ghostPos, S.n), diff = S.typed.length - Math.floor(gp);
+      if (diff > 0) { win = true; verdict = `Time's up — you were ${diff} characters ahead of the ghost.`; gres = `Won +${diff} chars`; }
+      else if (diff < 0) { win = false; verdict = `Time's up — the ghost was ${-diff} characters ahead.`; gres = `Lost −${-diff} chars`; }
+      else { verdict = "Time's up — you tied with the ghost."; gres = 'Tied'; }
+    } else if (S.ghostOn) {
       if (S.ghostFinishT === null) {
         win = true;
         const margin = (S.n - S.ghostPos) / (ghostWpm * 5 / 60);
@@ -298,7 +310,7 @@
 
     el.textbox.classList.add('ended');
     $('verdict').className = 'verdict' + (win === true ? ' win' : win === false ? ' lose' : '');
-    $('verdict').textContent = verdict || 'Test complete.';
+    $('verdict').textContent = verdict || (timeUp ? "Time's up." : 'Test complete.');
     $('rWpm').textContent = net.toFixed(1);
     $('rAcc').textContent = acc.toFixed(1) + '%';
     $('rCons').textContent = Math.round(cons) + '%';
@@ -365,14 +377,16 @@
   /* ---------- wiring ---------- */
   el.source.value = settings.text;
   el.optGhost.checked = settings.ghost; el.optStop.checked = settings.stop; el.optNorm.checked = settings.norm;
-  setGhostWpm(ghostWpm);
+  setGhostWpm(ghostWpm); setTimer(settings.timer);
   updateSrcInfo(); renderHistory();
 
   el.source.addEventListener('input', () => { updateSrcInfo(); persist(); });
   el.source.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) startTest(); });
   [el.optGhost, el.optStop, el.optNorm].forEach(o => o.addEventListener('change', () => { updateSrcInfo(); persist(); }));
+  el.timerSec.addEventListener('input', () => { const v = getTimer(); el.timerVal.textContent = v ? fmtDur(v) : 'off'; persist(); });
+  document.querySelectorAll('[data-timer]').forEach(b => b.addEventListener('click', () => setTimer(+b.dataset.timer)));
   el.ghostWpm.addEventListener('input', () => setGhostWpm(+el.ghostWpm.value));
-  document.querySelectorAll('.presets button').forEach(b => b.addEventListener('click', () => setGhostWpm(+b.dataset.wpm)));
+  document.querySelectorAll('[data-wpm]').forEach(b => b.addEventListener('click', () => setGhostWpm(+b.dataset.wpm)));
   $('gMinus').addEventListener('click', () => { setGhostWpm(ghostWpm - 5); el.capture.focus(); });
   $('gPlus').addEventListener('click', () => { setGhostWpm(ghostWpm + 5); el.capture.focus(); });
   $('gMinus').addEventListener('mousedown', e => e.preventDefault());

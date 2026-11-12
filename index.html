@@ -38,6 +38,17 @@
           </div>
         </div>
         <div class="field">
+          <label for="timerSec">Timer <b id="timerVal">off</b></label>
+          <input id="timerSec" type="number" min="0" max="3600" step="5" value="0" inputmode="numeric"> <span class="muted small">seconds (0 = no limit)</span>
+          <div class="presets">
+            <button type="button" data-timer="0">Off</button>
+            <button type="button" data-timer="15">15s</button>
+            <button type="button" data-timer="30">30s</button>
+            <button type="button" data-timer="60">60s</button>
+            <button type="button" data-timer="120">2m</button>
+          </div>
+        </div>
+        <div class="field">
           <label>Options</label>
           <label class="check"><input type="checkbox" id="optGhost" checked> Show ghost cursor</label>
           <label class="check"><input type="checkbox" id="optStop"> Block typing past a mistake</label>

@@ -73,3 +73,6 @@ th,td{text-align:left;padding:5px 10px;border-bottom:1px solid var(--line);white
 th{color:var(--muted);font-weight:600}
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding-bottom:24px}
 .chart-axis{stroke:var(--line)} .chart-txt{fill:var(--muted);font-size:11px}
+
+#timerSec{width:6.5em;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.live .v.low{color:var(--bad)}
