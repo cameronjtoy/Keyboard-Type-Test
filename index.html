@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ghost Type Test</title>
+  <meta name="description" content="A typing test with a ghost cursor you can race. Paste any paragraph and track WPM, accuracy, consistency and more.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Ghost<span>Type</span></h1>
+    <p class="tag">Race a ghost cursor. Paste any paragraph.</p>
+  </header>
+
+  <main>
+    <!-- SETUP -->
+    <section id="setup" class="card">
+      <label for="source">Your typing text</label>
+      <textarea id="source" rows="7" placeholder="Paste or type the paragraph you want to practise…" spellcheck="false"></textarea>
+      <div class="row small muted">
+        <span id="srcInfo">0 words · 0 characters</span>
+        <span class="spacer"></span>
+        <button type="button" class="link" id="sampleBtn">Insert sample</button>
+        <button type="button" class="link" id="clearBtn">Clear</button>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="ghostWpm">Ghost speed <b id="ghostVal">60</b> WPM</label>
+          <input id="ghostWpm" type="range" min="5" max="250" step="1" value="60">
+          <div class="presets">
+            <button type="button" data-wpm="30">30</button>
+            <button type="button" data-wpm="50">50</button>
+            <button type="button" data-wpm="80">80</button>
+            <button type="button" data-wpm="100">100</button>
+            <button type="button" data-wpm="130">130</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Options</label>
+          <label class="check"><input type="checkbox" id="optGhost" checked> Show ghost cursor</label>
+          <label class="check"><input type="checkbox" id="optStop"> Block typing past a mistake</label>
+          <label class="check"><input type="checkbox" id="optNorm" checked> Simplify smart quotes &amp; dashes</label>
+        </div>
+      </div>
+
+      <div class="row">
+        <button type="button" class="primary" id="startBtn">Start test</button>
+        <span class="muted small">The timer and ghost start on your first keystroke.</span>
+      </div>
+    </section>
+
+    <!-- TEST -->
+    <section id="test" class="card hidden">
+      <div class="live">
+        <div><span class="k">WPM</span><span class="v" id="liveWpm">0</span></div>
+        <div><span class="k">Accuracy</span><span class="v" id="liveAcc">100%</span></div>
+        <div><span class="k">Time</span><span class="v" id="liveTime">0.0s</span></div>
+        <div><span class="k">Progress</span><span class="v" id="liveProg">0%</span></div>
+        <div class="ghostCtl">
+          <span class="k">Ghost</span>
+          <span class="v"><button type="button" id="gMinus" aria-label="Slower ghost">−</button><span id="liveGhost">60</span><button type="button" id="gPlus" aria-label="Faster ghost">+</button></span>
+        </div>
+        <div><span class="k">vs ghost</span><span class="v" id="liveDelta">—</span></div>
+      </div>
+      <div class="bar"><i id="barYou"></i><i id="barGhost"></i></div>
+
+      <div id="textbox" class="textbox" tabindex="-1"><div id="text"></div></div>
+      <textarea id="capture" class="capture" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Type here"></textarea>
+
+      <div class="row small muted">
+        <span id="hint">Start typing to begin…</span>
+        <span class="spacer"></span>
+        <button type="button" class="link" id="restartBtn">Restart (Esc)</button>
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="results" class="card hidden">
+      <div id="verdict" class="verdict"></div>
+      <div class="big">
+        <div><span class="k">Net WPM</span><span class="v" id="rWpm"></span></div>
+        <div><span class="k">Accuracy</span><span class="v" id="rAcc"></span></div>
+        <div><span class="k">Consistency</span><span class="v" id="rCons"></span></div>
+        <div><span class="k">Time</span><span class="v" id="rTime"></span></div>
+      </div>
+
+      <div id="chartWrap" class="chartWrap"></div>
+
+      <div class="metrics" id="metrics"></div>
+
+      <div class="two">
+        <div>
+          <h3>Slowest words</h3>
+          <ol id="slowWords" class="list"></ol>
+        </div>
+        <div>
+          <h3>Most-missed keys</h3>
+          <ol id="missKeys" class="list"></ol>
+        </div>
+      </div>
+
+      <div class="row">
+        <button type="button" class="primary" id="againBtn">Try again</button>
+        <button type="button" id="editBtn">Edit text / settings</button>
+      </div>
+    </section>
+
+    <section id="historyCard" class="card hidden">
+      <div class="row"><h3>Recent runs</h3><span class="spacer"></span><button type="button" class="link" id="clearHist">Clear history</button></div>
+      <div class="tableWrap"><table id="hist"><thead><tr><th>When</th><th>WPM</th><th>Raw</th><th>Acc</th><th>Cons</th><th>Ghost</th><th>Result</th></tr></thead><tbody></tbody></table></div>
+    </section>
+  </main>
+
+  <footer>Everything runs in your browser. Settings and history are stored locally.</footer>
+  <script src="app.js"></script>
+</body>
+</html>
