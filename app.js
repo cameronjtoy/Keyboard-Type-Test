@@ -63,6 +63,7 @@
     const text = prepare(el.source.value, norm);
     if (!text) { el.source.focus(); el.srcInfo.textContent = 'Please enter some text first.'; return; }
     persist();
+    cancelAnimationFrame(raf); raf = 0; // stop any previous run's loop so the ghost restarts cleanly
     S = {
       text, n: text.length, typed: '',
       started: false, t0: 0, done: false,
